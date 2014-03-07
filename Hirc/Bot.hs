@@ -110,6 +110,7 @@ runHandler cmd@(Privmsg _ _ _ dest text) = do
                 when
                     (T.toLower (chanPrefix chan <> x)
                         `T.isPrefixOf` T.toLower text) $ f cmd
+        Nothing -> return ()
 runHandler _ = return ()
 
 runHooks :: [Hook] -> IRC -> StConn ()
