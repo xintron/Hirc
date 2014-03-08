@@ -6,15 +6,21 @@ import Control.Monad.State
 import Data.Text (Text)
 import System.IO
 
+import qualified Database.SQLite.Simple as SQ
+
 data Connections = Connections { connsServers :: [Connection] }
 
 data Connection = Connection { connServer :: Server
                              , connHandle :: Handle
+                             , connDb :: SQ.Connection
                              , connChannel :: Chan IRCRpl
                              , connIOChannel :: Chan Text }
 
+data Config = Config { confDatabase :: String }
+
 data Server = Server
-    { servHost :: Text
+    { servName :: Text
+    , servHost :: Text
     , servPort :: Int
     -- Channels with passwords needs to be put *before* channels without
     -- passwords

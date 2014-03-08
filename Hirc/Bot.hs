@@ -7,16 +7,18 @@ import Control.Monad.State
 import Data.Attoparsec.Text (parseOnly)
 import Data.List as L
 import Data.Monoid ((<>))
+import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import qualified Database.SQLite.Simple as SQ
 import Network
 import System.IO
 
 import Hirc.Parser
 import Hirc.Types
 
-initialize :: MVar Connections -> Chan T.Text -> Server -> IO ()
-initialize connections ioChan server = do
+initialize :: MVar Connections -> Chan Text -> SQ.Connection -> Server -> IO ()
+initialize connections ioChan db server = do
     handle <- connectTo
         (T.unpack $ servHost server)
         (PortNumber $ fromIntegral $ servPort server)
@@ -30,7 +32,7 @@ initialize connections ioChan server = do
     -- Add running server to Connections
     replyChan <- newChan
     c <- takeMVar connections
-    let conn = Connection server handle replyChan ioChan
+    let conn = Connection server handle db replyChan ioChan
     putMVar connections $ Connections (conn : connsServers c)
     forkIO $ void $ runStateT reply conn
 
@@ -46,11 +48,11 @@ initialize connections ioChan server = do
         in "USER " <> user' <> " 12 * :" <> user' <> " - assistant"
 
 -- Log data to stdout
-lio :: T.Text -> StConn ()
+lio :: Text -> StConn ()
 lio c = get >>= io . flip writeChan c . connIOChannel
 
 -- Write data over the connection (and log)
-write :: T.Text -> StConn ()
+write :: Text -> StConn ()
 write c = do
     lio $ "> " <> c
     liftM connHandle get >>= io . flip T.hPutStrLn c

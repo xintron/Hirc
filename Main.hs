@@ -6,6 +6,7 @@ import Control.Monad
 import Data.Monoid ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import Database.SQLite.Simple
 import System.IO
 
 import Config
@@ -15,14 +16,11 @@ import Hirc.Types
 main :: IO ()
 main = do
     conns <- newMVar $ Connections []
-    chan <- newChan
-    chan2 <- newChan
-    forkIO $
-        withFile (servLogFile server) AppendMode $ printer chan
-    forkIO $ initialize conns chan server
-    forkIO $
-        withFile (servLogFile server2) AppendMode $ printer chan2
-    forkIO $ initialize conns chan2 server2
+    db <- open $ confDatabase config
+    forM_ servers $ \s -> do
+        chan <- newChan
+        forkIO $ withFile (servLogFile s) AppendMode $ printer chan
+        forkIO $ initialize conns chan db s
     userInput conns
     return ()
 
